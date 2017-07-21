@@ -24,35 +24,37 @@ class SpiderQuotes(scrapy.Spider):
 
     #专门用来下载爬取到的页面内容的函数方法
     def parse(self, response):
-        # page = response.url.split("/")[-2]
-        # #['http:', '', 'quotes.toscrape.com', 'page', '1', '']
-        # filename = 'quotes-%s.html' % page
-        # with open(filename,'wb') as f:
-        #     f.write(response.body)
-        # self.log('保存文件：%s' %filename)
+        res = {}
+        all = []
+        quotes = response.css("div.quote")
+        for quote in quotes:
+            #div 表示html的标签
+            #quote 表示类名字
+            content = quote.css("span.text::text").extract_first()
+            author = quote.css("small.author::text").extract_first()
+            tags = quote.css("div.tags a.tag::text").extract()
+            #触发一个生成器 将每条每个quote中的相关内容封装成一个dic
+            yield {
+                'content':content,
+                'author':author,
+                'tags':tags
+            }
 
-        #尝试输出我们制定需要的html内容
-        #输出网页的title
+        """
+        {'author': u'Albert Einstein',
+        'content': u'\u201cThe world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.\u201d',
+        'tags': [u'change', u'deep-thoughts', u'thinking', u'world']}
+        """
 
-        title = response.css('title')
-        pprint(title)
 
-        #输出信息：[ < Selector xpath = u'descendant-or-self::title' data = u'<title>Quotes to Scrape</title>' >]
+        #将数据保存到本地
+        #保存为json数据
+        ###scrapy crawl quotes -o quotes.json
+        #这样的方式会全部反复追加到quotes.json文件中，不会做差异化的增量工作
 
-        title_getOnly_html=response.css('title').extract()
-        pprint(title_getOnly_html)
-        #输出信息：[u'<title>Quotes to Scrape</title>']
+        ###scrapy crawl quotes -o quotes.jl
+        #JSON Lines 模式的文件，数据流，每条数据是单独的的进行追加，不会破坏json文件的完整性。
 
-        title_without_html = response.css('title::text').extract()
-        pprint(title_without_html)
-        #输出信息 [u'Quotes to Scrape'] scrapy会去掉html表示显示纯文本内容
-
-        #此时是显示的一个列表
-        title_without_html_first = response.css('title::text').extract_first()
-        pprint(title_without_html_first)
-        #输出数据：u'Quotes to Scrape'
-        #输出列表的第一个数据
-        #.extract_first()的能避免IndexError异常错误，并且如果没有匹配时你能自动放回None
 
 
 
