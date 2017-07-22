@@ -8,6 +8,21 @@ pip install Scrapy
 ### 创建一个scrapy项目
 ```
 scrapy startproject scrapyTest
+创建一个爬虫文件
+scrapy genspider luoweis www.shiluowei.cn
+爬虫name='luoweis'
+start_url = 'http://www.shiluowei.cn'
+
+scrapy crawl luoweis -o luoweis.json| luoweis.jl
+开始爬取 并保存到项目中
+
+scrapy check
+检查scrapy爬虫文件是否有错误
+
+scrapy list
+列出现有的爬虫名称
+
+
 ```
 
 ### 项目目录
@@ -186,3 +201,56 @@ class SpiderQuotes(scrapy.Spider):
     会全部反复追加到quotes.json文件中，运行两边命令会造成一个破坏了的json格式数据文件
     scrapy crawl quotes -o quotes.jl
     JSON Lines 模式的文件，数据流，每条数据是单独的的进行追加，不会破坏json文件的完整性。
+
+#### 追踪链接
+
+```
+#!/usr/bin/env python
+# -*- coding: utf-8 -*
+
+#spider的测试用例
+
+import scrapy
+from pprint import pprint
+
+class SpiderQuotes(scrapy.Spider):
+
+    name = "quotes"
+    def start_requests(self):
+        urls = [
+            'http://quotes.toscrape.com',
+        ]
+
+        for url in urls:
+            yield scrapy.Request(url=url,callback=self.parse)
+
+    #专门用来下载爬取到的页面内容的函数方法
+    def parse(self, response):
+        quotes = response.css("div.quote")
+        for quote in quotes:
+            #div 表示html的标签
+            #quote 表示类名字
+            content = quote.css("span.text::text").extract_first()
+            author = quote.css("small.author::text").extract_first()
+            tags = quote.css("div.tags a.tag::text").extract()
+            #触发一个生成器 将每条每个quote中的相关内容封装成一个dic
+            yield {
+                'content':content,
+                'author':author,
+                'tags':tags
+            }
+        #默认爬取的是首页的内容
+        #通过以下操作取根据链接爬取下一页的内容
+        #定义下一页
+        next_page = response.css('li.next a::attr(href)').extract_first()
+        if next_page is not None:
+            next_page = response.urljoin(next_page)#链接拼接，自动拼接成一个完整的url
+            yield scrapy.Request(url=next_page,callback=self.parse)
+
+        #通过不断回调函数的方式，不断的取爬取下一页的链接内容。
+
+```
+    这里通过response.urljoin的方式将获取的相对路径链接拼接成了绝对路径，只有这样才能通过scrapy.Request()的方法取爬取内容。
+    可以通过response.follow()的方法使用短链接取爬取对应的页面
+
+
